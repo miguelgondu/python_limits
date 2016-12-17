@@ -1,7 +1,7 @@
 import sympy
 import math
 
-def lemma_1(f,p,q):
+def lemma1(f,p,q):
     r = sympy.degree(p)
     s = sympy.degree(q)
     if sympy.degree(f) >= r+s:
@@ -64,7 +64,21 @@ def pqgetter(f):
             raise ValueError('f has no factorization f=pq ' + 
                 ' with gcd(p,q) = 1')
 
-def Hensels_lemma(F, n):
+def HenselsLemma(F, n):
+    '''
+    This function takes a polynomial in two variables F(x,y) monic in
+    y such that F(0,y) = p(y)q(y), and finds two polynomials in
+    two variables P and Q such that P(0,y) = p(y), Q(0,y) = q(y) and
+    F = PQ up to deg(F). That is, this function lifts the
+    factorization F(0,y) = p(y)q(y).
+    
+    F: a polynomial in two variables x and y.
+    returns: a tuple (P,Q) such that F = PQ up to deg(F).
+    
+    TO-DO:
+        - this function only accepts polynomials in explicitly x and y, we need one that accepts polys in 
+          arbitrary generators.
+    '''
     x = sympy.Symbol('x')
     y = sympy.Symbol('y')
 
@@ -86,7 +100,7 @@ def Hensels_lemma(F, n):
 
     f0 = F.subs(x, 0)
     p, q = pqgetter(f0)
-    q1, p1 = lemma_1(list_of_fs[1], p, q)
+    q1, p1 = lemma1(list_of_fs[1], p, q)
     
     list_of_ps[0] = p
     list_of_ps[1] = p1
@@ -100,7 +114,7 @@ def Hensels_lemma(F, n):
             ri = ri + list_of_qs[i-j]*list_of_ps[j]
         mi = list_of_fs[i] - ri
         list_of_ms.append(mi)
-        qi, pi = lemma_1(mi, p, q)
+        qi, pi = lemma1(mi, p, q)
         list_of_ps[i] = sympy.Poly(pi,x,y)
         list_of_qs[i] = sympy.Poly(qi,x,y)
     P = 0
