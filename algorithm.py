@@ -79,7 +79,7 @@ def phiAutomorphism(h):
     #print(sympy.degree(h, y))
     #print(h)
     #print(list_of_bs)
-    return h.as_expr().subs([(y, y-b1/sympy.degree(h, y).as_expr())], simultaenous=True).as_poly(x,y), b1
+    return h.as_expr().subs([(y, y-sympy.Rational(1,sympy.degree(h, y))*b1.as_expr())], simultaenous=True).as_poly(x,y), b1
 
 def leastDegreeInx(b):
     x = sympy.Symbol('x')

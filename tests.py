@@ -22,4 +22,9 @@ def test_monicMaker():
 	h = 4*x**4*y - 2*x**2*y**3 + 2*y**5
 	h1 = monicMaker(h)
 	assert h1.as_poly(y).LC() == 1
-	
+
+def test_phi_automorphism():
+	h = (y**2 - sympy.Rational(80,9)*x*y - x**2).as_poly(y)
+	h1, a = phiAutomorphism(h)
+	bs = componentsOfy(h1)
+	assert bs[-2] == 0

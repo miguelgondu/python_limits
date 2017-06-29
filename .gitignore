@@ -1,3 +1,4 @@
 *.pdf
 Notebooks/.ipynb_checkpoints/**
 *.pyc
+.cache/v/cache/lastfailed
