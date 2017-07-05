@@ -7,6 +7,9 @@ y = sympy.Symbol('y')
 
 # Auxiliar functions
 
+def substituteInPoly(p, list_of_subst):
+    return p.as_expr().subs(list_of_subst, simultaneous = True).as_poly()
+
 def hgetter(f,g):
     return x.as_poly()*(g*sympy.diff(f, x) - f*sympy.diff(g, x)) - y.as_poly()*(g*sympy.diff(f, y) - f*sympy.diff(g, y))
 
@@ -34,7 +37,7 @@ def newtonAutomorphism(h, q, p):
     (not a polynomial). Here, p and q are expected to be rational
     numbers.
     '''
-    return h.as_expr().subs([(x, x ** q), (y, y*x**p)], simultaneous=True)
+    return substituteInPoly(h, [(x, x ** q), (y, y*x**p)])
 
 def componentsOfy(F):
     '''
@@ -43,6 +46,7 @@ def componentsOfy(F):
     '''
     x = sympy.Symbol('x')
     y = sympy.Symbol('y')
+    F = F.as_poly()
     list_of_Fprimes = [F]
     list_of_fs = [F.eval(y, 0)]
     for j in range(1, sympy.degree(F, y)+1):
@@ -58,6 +62,7 @@ def componentsOfx(F):
     '''
     x = sympy.Symbol('x')
     y = sympy.Symbol('y')
+    F = F.as_poly()
     list_of_Fprimes = [F]
     list_of_fs = [F.eval(x, 0)]
     for j in range(1, sympy.degree(F, x)+1):
@@ -79,11 +84,17 @@ def phiAutomorphism(h):
     #print(sympy.degree(h, y))
     #print(h)
     #print(list_of_bs)
-    return h.as_expr().subs([(y, y-sympy.Rational(1,sympy.degree(h, y))*b1.as_expr())], simultaenous=True).as_poly(x,y), b1
+    return substituteInPoly(h, [(y, y- (1/sympy.degree(h, y))*b1.as_expr())]), b1
 
 def leastDegreeInx(b):
+    '''
+    Returns the least degree in x of a polynomial b(x) (assumed to only be a 
+    polynomial in x, not x and y).
+
+    Question:
+        -must it be strictly positive?
+    '''
     x = sympy.Symbol('x')
-    y = sympy.Symbol('y')
     k = 0
     while(sympy.simplify(b/x**k).subs(x, 0) == 0):
         k += 1
@@ -93,7 +104,7 @@ def urgetter(h):
     '''
     Given a polynomial 
         h(x,y) = y ** d + b_2(x)y**(d-2) + ... + b_d(x)
-    this function returns the tuple r, u_r where u_r is the
+    this function returns the tuple (r, u_r) where u_r is the
     degree of b_r such that u_r/r is minimal.
     '''
     list_of_bs = componentsOfy(h)
@@ -102,4 +113,3 @@ def urgetter(h):
     list_of_quotients = [k/(i+2) for (i, k) in enumerate(list_of_least_degrees)]
     r_indexer = list_of_quotients.index(min(list_of_quotients))
     return r_indexer + 2, list_of_least_degrees[r_indexer]
-
