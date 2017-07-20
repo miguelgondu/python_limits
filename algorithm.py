@@ -118,3 +118,22 @@ def ur_getter(h):
     list_of_quotients = [k/(i+2) for (i, k) in enumerate(list_of_least_degrees)]
     r_indexer = list_of_quotients.index(min(list_of_quotients))
     return r_indexer + 2, list_of_least_degrees[r_indexer]
+
+def poly_mod(h, n):
+    '''
+    This function takes a polynomial h in one variable and returns what rests
+    after eliminating every monomial whose degree is bigger than n (i.e.
+    after erasing every x**k with k >= n).
+    '''
+    if len(h.gens) > 1:
+        raise ValueError('Polynomial should only have one generator')
+    if n > sympy.degree(h):
+        '''
+        If n is bigger than the degree, there's nothing to erase.
+        '''
+        return h
+
+    x = h.gen
+    list_of_coeffs = h.all_coeffs()[::-1] # i.e. list[k] is the coeff of x**k.
+    list_of_modulus_coeffs = list_of_coeffs[:n]
+    return sympy.Poly(list_of_modulus_coeffs[::-1], x)

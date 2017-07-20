@@ -42,3 +42,11 @@ def test_urgetter():
 	h = y**5 + (x**2+1)*y**3 + (2*x**3)*y**2 + (x+1)*y + x**3 + 2
 	r, ur = ur_getter(h)
 	assert ur == 0 and r==2
+
+def test_poly_mod():
+	h = sympy.Poly(y**5 + y**4 + y + 3)
+	assert poly_mod(h, 3) == y + 3
+
+def test_poly_mod2():
+	h = sympy.Poly(y**5 + y**4 + y + 3)
+	assert poly_mod(h, 6) == h
