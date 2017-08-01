@@ -31,7 +31,8 @@ def monic_maker(h):
     new_h = h
     while sympy.LC(new_h, y) not in sympy.CC:
         n = random.randint(1, 10)
-        new_h = h.as_expr().subs([(x, x + n*y), (y, -n*x + y)], simultaneous=True)
+        new_h = h.as_expr().subs([(x, x + n*y), (y, -n*x + y)],
+                                 simultaneous=True)
     new_h = new_h * (1/sympy.LC(new_h, y))
     return new_h.as_poly()
 
@@ -137,3 +138,11 @@ def poly_mod(h, n):
     list_of_coeffs = h.all_coeffs()[::-1] # i.e. list[k] is the coeff of x**k.
     list_of_modulus_coeffs = list_of_coeffs[:n]
     return sympy.Poly(list_of_modulus_coeffs[::-1], x)
+
+def upper_bound_getter(h):
+    
+
+def limit_poly(f, g):
+    # First, we get the quotient's variety divider h
+    h = h_getter(f, g)
+    h = monic_maker(h)
