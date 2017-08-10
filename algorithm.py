@@ -1,6 +1,7 @@
 import math
 import random
 import sympy
+from functools import reduce
 
 x = sympy.Symbol('x')
 y = sympy.Symbol('y')
@@ -139,8 +140,35 @@ def poly_mod(h, n):
     list_of_modulus_coeffs = list_of_coeffs[:n]
     return sympy.Poly(list_of_modulus_coeffs[::-1], x)
 
+def get_denominators_of_x(sympy_expression):
+    '''
+    this function takes a sympy EXPRESSION f of the form
+    $f(x) = \sum c_i x^{p_i}$, where $p_i$s are rational, and returns
+    a list with all the denominators of said rationals (1 is not conunted).
+
+    To-Do:
+        - Implement the possibility of another generator instead of x.
+    '''
+    expr_string = sympy.srepr(sympy_expression)
+    list_of_matches = re.findall(r"Pow\(Symbol\('x'\), Rational\(\d+, \d+\)",
+                                 expr_string)
+    list_of_exponents = [int(string[29:-1]) for string in list_of_matches]
+    return list_of_exponents
+
+def gcd_for_lists(list_of_denominators):
+    '''
+    This function returns the gcd of a list of integers.
+    '''
+    return reduce(math.gcd, list_of_denominators)
+
 def upper_bound_getter(h):
-    
+    '''
+    This function takes a polynomial h(x,y) = y^d + a_1(x)y^{d-1} + ... + a_d(x)
+    and returns N = ceil(e^{d/e}u_d)
+    '''
+    list_of_as = components_of_y(h)
+    u_d = least_degree_in_x(list_of_as[0])
+    return math.ceil(math.e ** (sympy.degree(h, y)/math.e) * u_d)
 
 def limit_poly(f, g):
     # First, we get the quotient's variety divider h
