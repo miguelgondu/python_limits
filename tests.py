@@ -50,3 +50,13 @@ def test_poly_mod():
 def test_poly_mod2():
 	h = sympy.Poly(y**5 + y**4 + y + 3)
 	assert poly_mod(h, 6) == h
+
+def test_get_denominators1():
+	h = (x**sympy.Rational(1,5) + y*x**sympy.Rational(3,4)
+		+ y**2*x**sympy.Rational(3,10))
+	assert set(get_denominators_of_x(h)) == set([5,4,10])
+
+def test_get_denominators2():
+	h = (x**sympy.Rational(1,1024) + y*x**sympy.Rational(1,2022)
+		+ y**2*x**sympy.Rational(4,123))
+	assert set(get_denominators_of_x(h)) == set([1024, 2022, 123])

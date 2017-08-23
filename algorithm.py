@@ -1,5 +1,6 @@
 import math
 import random
+import re
 import sympy
 from functools import reduce
 
@@ -42,7 +43,7 @@ def newton_automorphism(h, q, p):
     This function performs the Newton Automorphism (x maps to x ** q
     and y maps to y(x ** p)) to a polynomial h, returning a sympy expr
     (not a polynomial). Here, p and q are expected to be rational
-    numbers.
+    numbers (i.e. sympy.Rational objects).
     '''
     return substitute_in_poly(h, [(x, x ** q), (y, y*x**p)])
 
