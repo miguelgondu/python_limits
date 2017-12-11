@@ -14,11 +14,11 @@ def substitute_in_poly(p, list_of_subst):
     Substitutes substitutions (in the form of tuples) from list_of_subst
     in the sympy polynomial p. 
     '''
-    return p.as_expr().subs(list_of_subst, simultaneous=True).as_poly()
+    return p.as_expr().subs(list_of_subst, simultaneous=True)
 
 def h_getter(f, g):
-    return (x.as_poly()*(g*sympy.diff(f, x) - f*sympy.diff(g, x))
-            - y.as_poly()*(g*sympy.diff(f, y) - f*sympy.diff(g, y)))
+    return (-x*(g*sympy.diff(f, y) - f*sympy.diff(g, y))
+            + y*(g*sympy.diff(f, x) - f*sympy.diff(g, x)))
 
 def monic_maker(h):
     '''
@@ -33,6 +33,7 @@ def monic_maker(h):
     new_h = h
     while sympy.LC(new_h, y) not in sympy.CC:
         n = random.randint(1, 10)
+        print('n is {}'.format(n))
         new_h = h.as_expr().subs([(x, x + n*y), (y, -n*x + y)],
                                  simultaneous=True)
     new_h = new_h * (1/sympy.LC(new_h, y))
@@ -54,13 +55,12 @@ def components_of_y(F):
     '''
     x = sympy.Symbol('x')
     y = sympy.Symbol('y')
-    F = F.as_poly()
     list_of_Fprimes = [F]
-    list_of_fs = [F.eval(y, 0)]
+    list_of_fs = [F.subs(y, 0)]
     for j in range(1, sympy.degree(F, y)+1):
         nextFprime = sympy.diff(list_of_Fprimes[j-1], y)
         list_of_Fprimes.append(nextFprime)
-        list_of_fs.append((1/math.factorial(j))*nextFprime.eval(y, 0).as_poly(x))
+        list_of_fs.append(sympy.Rational(1, math.factorial(j))*nextFprime.subs(y, 0))
     return list_of_fs
 
 def components_of_x(F):
@@ -91,7 +91,7 @@ def phi_automorphism(h):
     #print(sympy.degree(h, y))
     #print(h)
     #print(list_of_bs)
-    return substitute_in_poly(h, [(y, y- (1/sympy.degree(h, y))*b1.as_expr())]), b1
+    return substitute_in_poly(h, [(y, y- sympy.Rational(1,sympy.degree(h, y))*b1.as_expr())]), b1
 
 def least_degree_in_x(b):
     '''
@@ -118,7 +118,7 @@ def ur_getter(h):
     list_of_bs = list_of_bs[::-1] # To follow the convention of the proof.
     # Here, position 0 is really from b2.
     list_of_least_degrees = [least_degree_in_x(b) for b in list_of_bs[2:]] 
-    list_of_quotients = [k/(i+2) for (i, k) in enumerate(list_of_least_degrees)]
+    list_of_quotients = [ui/(i+2) for (i, ui) in enumerate(list_of_least_degrees)]
     r_indexer = list_of_quotients.index(min(list_of_quotients))
     return r_indexer + 2, list_of_least_degrees[r_indexer]
 

@@ -1,4 +1,5 @@
 *.pdf
 Notebooks/*
 *.pyc
-.cache/v/cache/lastfailed
+.cache/
+.ipynb_checkpoints/
