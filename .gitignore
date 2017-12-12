@@ -3,3 +3,4 @@ Notebooks/*
 *.pyc
 .cache/
 .ipynb_checkpoints/
+general_tester.py

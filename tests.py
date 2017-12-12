@@ -5,18 +5,11 @@ x = sympy.Symbol('x')
 y = sympy.Symbol('y')
 
 def test_h_getter1():
-	f = sympy.Poly(x, x, y)
-	g = sympy.Poly(y, x, y)
+	f = x**2 + y**2
+	g = x**2 - y**2
 
 	h = h_getter(f, g)
-	assert h == 2*x*y
-
-def test_h_getter2():
-	f = sympy.Poly(x**2 + y**2)
-	g = sympy.Poly(2*y**3 + 4*x**2*y)
-
-	h = h_getter(f, g)
-	assert h == 4*x**4*y - 2*x**2*y**3 + 2*y**5
+	assert h == -4*x*y*(x**2 + y**2)
 
 def test_monic_maker():
 	h = 4*x**4*y - 2*x**2*y**3 + 2*y**5

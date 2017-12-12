@@ -18,9 +18,9 @@ def substitute_in_poly(p, list_of_subst):
 
 def h_getter(f, g):
     return (-x*(g*sympy.diff(f, y) - f*sympy.diff(g, y))
-            + y*(g*sympy.diff(f, x) - f*sympy.diff(g, x)))
+            + y*(g*sympy.diff(f, x) - f*sympy.diff(g, x))).simplify()
 
-def monic_maker(h):
+def monic_maker(h, n=None):
     '''
     This function peforms a rotation on a polynomial of two variables
     h(x,y). That is, it maps h(x,y) to h(x+ny, -nx + y)) for some n
@@ -32,12 +32,13 @@ def monic_maker(h):
     '''
     new_h = h
     while sympy.LC(new_h, y) not in sympy.CC:
-        n = random.randint(1, 10)
-        print('n is {}'.format(n))
+        if n == None:
+            n = random.randint(1, 10)
+        # print('n is {}'.format(n))
         new_h = h.as_expr().subs([(x, x + n*y), (y, -n*x + y)],
                                  simultaneous=True)
-    new_h = new_h * (1/sympy.LC(new_h, y))
-    return new_h.as_poly()
+    new_h = new_h * (sympy.Rational(1, sympy.LC(new_h, y)))
+    return new_h
 
 def newton_automorphism(h, q, p):
     '''
