@@ -4,3 +4,4 @@ Notebooks/*
 .cache/
 .ipynb_checkpoints/
 general_tester.py
+hensels_lema_tester.py
