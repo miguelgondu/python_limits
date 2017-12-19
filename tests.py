@@ -22,6 +22,12 @@ def test_phi_automorphism():
 	bs = components_of_y(h1)
 	assert bs[-2] == 0
 
+def test_phi_inverse():
+	h = (y**2 - sympy.Rational(80,9)*x*y - x**2)
+	h1, a = phi_automorphism(h)
+	h2 = phi_inverse(h1, a)
+	assert h == h2
+
 def test_newton_automorphism():
 	h = 2*x*y
 	new_h = newton_automorphism(h, sympy.Rational(1,2), sympy.Rational(1,3)) 

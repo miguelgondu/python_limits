@@ -31,12 +31,14 @@ def monic_maker(h, n=None):
           roots of the polynomial.
     '''
     new_h = h
+    k = 0
     while sympy.LC(new_h, y) not in sympy.CC:
-        if n == None:
-            n = random.randint(1, 10)
-        # print('n is {}'.format(n))
-        new_h = h.as_expr().subs([(x, x + n*y), (y, -n*x + y)],
+        # if n == None:
+        #     n = random.randint(1, 10)
+        # # print('n is {}'.format(n))
+        new_h = h.as_expr().subs([(x, x + k*y), (y, -k*x + y)],
                                  simultaneous=True)
+        k += 1
     new_h = new_h * (sympy.Rational(1, sympy.LC(new_h, y)))
     return new_h
 
@@ -48,6 +50,15 @@ def newton_automorphism(h, q, p):
     numbers (i.e. sympy.Rational objects).
     '''
     return substitute_in_poly(h, [(x, x ** q), (y, y*x**p)])
+
+def newton_inverse(h, q, p):
+    '''
+    This function performs the Newton Automorphism (x maps to x ** q
+    and y maps to y(x ** p)) to a polynomial h, returning a sympy expr
+    (not a polynomial). Here, p and q are expected to be rational
+    numbers (i.e. sympy.Rational objects).
+    '''
+    return newton_automorphism(h, sympy.Rational(1,q), sympy.Rational(-p, q))
 
 def components_of_y(F):
     '''
@@ -88,11 +99,22 @@ def phi_automorphism(h):
     '''
     y = sympy.Symbol('y')
     list_of_bs = components_of_y(h)
-    b1 = list_of_bs[-2]
+    b1 = sympy.Rational(1,sympy.degree(h, y))*list_of_bs[-2]
     #print(sympy.degree(h, y))
     #print(h)
     #print(list_of_bs)
-    return substitute_in_poly(h, [(y, y- sympy.Rational(1,sympy.degree(h, y))*b1.as_expr())]), b1
+    return substitute_in_poly(h, [(y, y- b1)]), b1
+
+def phi_inverse(h, b1):
+    '''
+    This function performs the inverse phi automorphism to a polynomial that's monic in y,
+    so that the term that's with degree(h, y) - 1 banishes.
+    '''
+    y = sympy.Symbol('y')
+    #print(sympy.degree(h, y))
+    #print(h)
+    #print(list_of_bs)
+    return substitute_in_poly(h, [(y, y + b1)])
 
 def least_degree_in_x(b):
     '''
@@ -169,7 +191,7 @@ def gcd_for_lists(list_of_denominators):
 def upper_bound_getter(h):
     '''
     This function takes a polynomial h(x,y) = y^d + a_1(x)y^{d-1} + ... + a_d(x)
-    and returns N = ceil(e^{d/e}u_d)
+    and returns N = ceil(e^{(d/e)}u_d)
     '''
     list_of_as = components_of_y(h)
     u_d = least_degree_in_x(list_of_as[0])
@@ -220,6 +242,8 @@ def fgetter(F):
 def pqgetter(f):
     '''
     This function takes a polynomial f = pq with gcd(p,q) = 1 and returns the tuple (p, q).
+
+    -Modificar este para que siempre saque un par, así sea irreducible el polinomio.
     '''
     # if f.is_irreducible:
     #     raise ValueError('f has no factorization')
@@ -240,12 +264,16 @@ def pqgetter(f):
     #         return first_factor, second_factor
     #     else:
     #         raise ValueError('f has no factorization f=pq with gcd(p,q) = 1')
-    list_of_factors = sympy.factor_list(f)[1]
-    p, mult_p = list_of_factors[0]
-    if sympy.degree(p, y) > 1:
+    dict_of_roots = sympy.roots(f)
+    list_of_real_roots = [key for key in dict_of_roots if key in sympy.RR]
+    if list_of_real_roots == []:
         raise ValueError('There are no real roots')
-    q = f/(p**mult_p)
-    return p**mult_p, q
+    r = list_of_real_roots[0]
+    p = (y - r) ** dict_of_roots[r]
+    q, res = sympy.div(f, p)
+    print('res: ' + str(res.simplify()))
+    return p.evalf(), q.evalf()
+    
 
 def Hensels_lemma(F, n):
     x = sympy.Symbol('x')
@@ -347,41 +375,153 @@ def limit_poly(f, g):
     # First, we get the quotient's variety divider h
     h = h_getter(f,g)
     print('h: ' + str(h.expand()))
+    h = monic_maker(h)
+    N = upper_bound_getter(h)
+    h, b1 = phi_automorphism(h)
+    _dict = {
+        h: [lambda x: phi_inverse(x, b1)]
+    }
 
-    # Rotating it so that it's monic
-    new_h = monic_maker(h, 1)
-    print('h after rotating: ' + str(new_h.expand()))
+    if len(sympy.solve(h.subs(x, 0))) < 2:
+        r, ur = ur_getter(h)
+        # print('r is: ' + str(r))
+        # print('ur is: ' + str(ur))
+        if ur == sympy.simplify('oo'):
+            # La única trayectoria es sigma = 0.
+            return (0, 0)
+        h = newton_automorphism(h, r, ur)
+        _dict[h].append(lambda x: newton_automorphism(x, 1/r, -ur/r))
 
-    # Removing the d-1th term in y
-    new_h, b1 = phi_automorphism(new_h)
-    print('h after phi: ' + str(new_h.simplify().expand())) # Change everything to sympy expressions.
 
-    # Applying Newton's
+    P, Q = Hensels_lemma(h, N)
+    _list = [P, Q]
+    _dict[P] = _dict[h]
+    _dict[Q] = _dict[h]
+    _recursive(P)
+    _recursive(Q)
 
-    # Añadir un if que verifique si ya se factoriza.
-    r, ur = ur_getter(new_h)
+def _recursive(h):
+    global _dict
+    global _list
+    _list.remove(h)
+    h = monic_maker(h)
+    N = upper_bound_getter(h)
+    h, b1 = phi_automorphism(h)
+    _dict = {
+        h: [lambda x: phi_inverse(x, b1)]
+    }
+
+    if len(sympy.solve(h.subs(x, 0))) < 2:
+        r, ur = ur_getter(h)
+        # print('r is: ' + str(r))
+        # print('ur is: ' + str(ur))
+        if ur == sympy.simplify('oo'):
+            # La única trayectoria es sigma = 0.
+            return (0, 0)
+        h = newton_automorphism(h, r, ur)/x**d*ur
+        _dict[h].append(lambda x: newton_automorphism(x, 1/r, -ur/r))
+
+
+    P, Q = Hensels_lemma(h, N)
+    _dict[P] = _dict[h]
+    _dict[Q] = _dict[h]
+    if sympy.degree(P, y) == 1:
+        _recursive(P)
+    _recursive(Q)
+
+from queue import LifoQueue
+
+def limit_poly2(f, g):
+    h = h_getter(f, g)
+    print('h: ' + str(h.expand().simplify()))
+    h = monic_maker(h)
+    print('monic h: ' + str(h.expand().simplify()))
+    N = upper_bound_getter(h)
+    h, b1 = phi_automorphism(h)
+    print('h after phi: ' + str(h.expand().simplify()))
+    r, ur = ur_getter(h)
     print('r is: ' + str(r))
     print('ur is: ' + str(ur))
-    h_newton = newton_automorphism(new_h, r, ur)
-    print('h after Newton\'s: ' + str(h_newton.simplify().expand()))
+    if ur == sympy.simplify('oo'):
+        return []
+    d = sympy.degree(h, y)
+    h = newton_automorphism(h, r, ur)/(x**(d*ur))
+    print('h after newton: ' + str(h.expand().simplify()))
 
-    h_newton = h_newton.simplify()
-    # h_newton = h_newton.as_poly()
-    d = sympy.degree(h_newton, y)
-    print('This is h: ' + str(h_newton.factor()/x**(d*ur)))
-    h_newton = h_newton.factor()/x**(d*ur)
-    new_h = h_newton.subs(x, 0)
-    list_of_factors = sympy.factor_list(new_h)[1]
-    print(list_of_factors)
+    if sympy.degree(h, x) == 0:
+        try:
+            P, Q = pqgetter(h)
+        except ValueError:
+            return []
+        s = sympy.degree(P, y)
+        t = sympy.degree(Q, y)
+        P = (phi_inverse(newton_inverse(P, r, ur), b1).subs(x, x**r)) * x**(s*ur)
+        Q = (phi_inverse(newton_inverse(Q, r, ur), b1).subs(x, x**r)) * x**(t*ur)
+    else:
+        P, Q = Hensels_lemma(h.simplify(), N)
+        s = sympy.degree(P, y)
+        t = sympy.degree(Q, y)
+        P = (phi_inverse(newton_inverse(P, r, ur), b1).subs(x, x**r)) * x**(s*ur)
+        Q = (phi_inverse(newton_inverse(Q, r, ur), b1).subs(x, x**r)) * x**(t*ur)
+    stack = LifoQueue()
+    stack.put(P)
+    stack.put(Q)
+    list_of_tray = []
+    list_of_rs = [r]
+    while not stack.empty():
+        H = stack.get()
+        print('From the stack I got: ' + str(H.expand().simplify()))
+        H = H.expand().simplify()
+        if H.subs([(x, 0), (y, 0)], simultaneous=True) != 0:
+            print('H doesn\'t go through 0!, because H(0,0) = {}'.format(
+                H.subs([(x, 0), (y, 0)], simultaneous=True)))
+            continue
+        if sympy.degree(H, y) == 1:
+            print('H works!')
+            list_of_tray.append(H)
+            continue
+        
+        print('H needs more work')
 
-    p, q = pqgetter(new_h)
-    # print('p is: ' + str(p))
-    # print('q is: ' + str(q.simplify()))
+        H = monic_maker(H)
+        print('monic H: ' + str(H.expand().simplify()))
+        N = upper_bound_getter(H)
+        H, b1 = phi_automorphism(H)
+        print('H after phi: ' + str(H.expand().simplify()))
+        r, ur = ur_getter(H)
+        list_of_rs.append(r)
+        # print('r is: ' + str(r))
+        # print('ur is: ' + str(ur))
+        if ur == sympy.simplify('oo'):
+            list_of_tray.append(sympy.simplify(0))
+            continue
+        d = sympy.degree(H, y)
+        H = newton_automorphism(H, r, ur)/(x**(d*ur))
+        print('H after newton: ' + str(H.expand().simplify()))
+        if sympy.degree(h, x) == 0:
+            try:
+                P, Q = pqgetter(H)
+            except ValueError:
+                continue
+            s = sympy.degree(P, y)
+            t = sympy.degree(Q, y)
+            P = (phi_inverse(newton_inverse(P, r, ur), b1).subs(x, x**r)) * x**(s*ur)
+            Q = (phi_inverse(newton_inverse(Q, r, ur), b1).subs(x, x**r)) * x**(t*ur)
+        else:
+            P, Q = Hensels_lemma(h.simplify(), N)
+            s = sympy.degree(P, y)
+            t = sympy.degree(Q, y)
+            P = (phi_inverse(newton_inverse(P, r, ur), b1).subs(x, x**r)) * x**(s*ur)
+            Q = (phi_inverse(newton_inverse(Q, r, ur), b1).subs(x, x**r)) * x**(t*ur)
+            try:
+                P, Q = Hensels_lemma(H.simplify(), N)
+            except ValueError:
+                print('H has no real roots!')
+                continue
+        print('Putting {} in the stack'.format(P))
+        stack.put(P)
+        print('Putting {} in the stack'.format(Q))
+        stack.put(Q)
+    return list_of_tray
 
-    print(components_of_x(h_newton))
 
-    # P, Q = Hensels_lemma(h_newton, 3)
-    # print('P is: {}'.format(P))
-    # print('Q is: {}'.format(Q))
-    # # Reimplementar el lema de Hensel para que acepte expresiones en vez de polinomios.
-    # return P, Q, h_newton
