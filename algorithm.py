@@ -206,8 +206,10 @@ def lemma_1(f,p,q):
     '''
     r = sympy.degree(p)
     s = sympy.degree(q)
-    if sympy.degree(f.as_poly(y), y) >= r+s:
-        raise ValueError('polynomial f must have degree less that deg(p)+deg(q)')
+    if sympy.degree(f.simplify(), y) >= r+s:
+        print('p: ' + str(p))
+        print('q: ' + str(q))
+        raise ValueError('polynomial {} must have degree less that deg(p)+deg(q)'.format(f.expand().simplify()))
     (phi, psi, gcd) = sympy.gcdex(p.as_poly(y),q.as_poly(y))
     phi = phi.as_expr()
     psi = psi.as_expr()
@@ -272,7 +274,7 @@ def pqgetter(f):
     p = (y - r) ** dict_of_roots[r]
     q, res = sympy.div(f, p)
     print('res: ' + str(res.simplify()))
-    return p.evalf(), q.evalf()
+    return p, q
     
 
 def Hensels_lemma(F, n):
@@ -315,12 +317,12 @@ def Hensels_lemma(F, n):
         print('qi={}'.format(list_of_qs[i]))
         ri = 0
         for j in range(1,i):
-            ri = ri + list_of_qs[i-j]*list_of_ps[j]
+            ri = ri + (list_of_qs[i-j]*list_of_ps[j]).expand().simplify()
         if i < degree_of_F_x:
             mi = list_of_fs[i] - ri
         elif i >= degree_of_F_x:
             mi = (-1)*ri
-        list_of_ms.append(mi)
+        list_of_ms.append(mi.expand().simplify().evalf())
         print('mi={}'.format(list_of_ms[i-1]))
         qi, pi = lemma_1(mi, p, q.simplify())
         list_of_ps[i] = pi
@@ -339,106 +341,37 @@ def Hensels_lemma(F, n):
 
     return P, Q
 
-def agrupador(g):
-    list_of_factors = sympy.factor_list(g)[1]
-    dict_of_imaginary_roots = {}
-    dict_of_real_roots = {}
-    for _tuple in list_of_factors:
-        p, mult_p = _tuple
-        list_of_roots_of_p = sympy.solve(p)
-        for root in list_of_roots_of_p:
-            if root in sympy.CC and root not in sympy.RR:
-                dict_of_imaginary_roots[root] = mult_p
-            else:
-                dict_of_real_roots[root] = mult_p
-
-    real_pol = 1
-    imaginary_pol = 1
-
-    for real_root in dict_of_real_roots:
-        real_pol *= (y - real_root) ** dict_of_real_roots[real_root]
-
-    imaginary_root_list = []
-
-    for im_root in dict_of_imaginary_roots:
-        if sympy.conjugate(im_root) in imaginary_root_list:
-            continue
-        else:
-            imaginary_root_list.append(im_root)
-            imaginary_pol *= ((y - im_root)*(y-sympy.conjugate(im_root).simplify())).expand() ** dict_of_imaginary_roots[im_root]
-    print(imaginary_root_list)
-    return real_pol, imaginary_pol
-            
-
-
-def limit_poly(f, g):
-    # First, we get the quotient's variety divider h
-    h = h_getter(f,g)
-    print('h: ' + str(h.expand()))
-    h = monic_maker(h)
-    N = upper_bound_getter(h)
-    h, b1 = phi_automorphism(h)
-    _dict = {
-        h: [lambda x: phi_inverse(x, b1)]
-    }
-
-    if len(sympy.solve(h.subs(x, 0))) < 2:
-        r, ur = ur_getter(h)
-        # print('r is: ' + str(r))
-        # print('ur is: ' + str(ur))
-        if ur == sympy.simplify('oo'):
-            # La única trayectoria es sigma = 0.
-            return (0, 0)
-        h = newton_automorphism(h, r, ur)
-        _dict[h].append(lambda x: newton_automorphism(x, 1/r, -ur/r))
-
-
-    P, Q = Hensels_lemma(h, N)
-    _list = [P, Q]
-    _dict[P] = _dict[h]
-    _dict[Q] = _dict[h]
-    _recursive(P)
-    _recursive(Q)
-
-def _recursive(h):
-    global _dict
-    global _list
-    _list.remove(h)
-    h = monic_maker(h)
-    N = upper_bound_getter(h)
-    h, b1 = phi_automorphism(h)
-    _dict = {
-        h: [lambda x: phi_inverse(x, b1)]
-    }
-
-    if len(sympy.solve(h.subs(x, 0))) < 2:
-        r, ur = ur_getter(h)
-        # print('r is: ' + str(r))
-        # print('ur is: ' + str(ur))
-        if ur == sympy.simplify('oo'):
-            # La única trayectoria es sigma = 0.
-            return (0, 0)
-        h = newton_automorphism(h, r, ur)/x**d*ur
-        _dict[h].append(lambda x: newton_automorphism(x, 1/r, -ur/r))
-
-
-    P, Q = Hensels_lemma(h, N)
-    _dict[P] = _dict[h]
-    _dict[Q] = _dict[h]
-    if sympy.degree(P, y) == 1:
-        _recursive(P)
-    _recursive(Q)
-
 from queue import LifoQueue
+from operator import mul
 
-def limit_poly2(f, g):
+def lcm(a,b):
+    return a*b//math.gcd(a,b)
+
+def rotate(f, n):
+    return f.subs([(x, x + n*y), (y, -x + n*y)], simultaneous=True)
+
+def limit_poly2(f, g, N):
+    list_of_tray = []
     h = h_getter(f, g)
     print('h: ' + str(h.expand().simplify()))
     h = monic_maker(h)
     print('monic h: ' + str(h.expand().simplify()))
-    N = upper_bound_getter(h)
+    # try:
+    #     N = upper_bound_getter(h)
+    #     print('N: ' + str(N))
+    # except OverflowError:
+    #     list_of_factors = sympy.factor_list(h)[1]
+    #     for _tuple in list_of_factors:
+    #         a, b = _tuple
+    #         if a == y:
+    #             h = (h / (y**b)).simplify()
+    #             N = upper_bound_getter(h)
+    #             print('N: ' + str(N))
+    #             list_of_tray.append(y)
+    #             break
+    print('h: ' + str(h))
     h, b1 = phi_automorphism(h)
-    print('h after phi: ' + str(h.expand().simplify()))
+    print('h after phi: ' + str(h.expand().simplify()) + ' with inverse ' + str(b1))
     r, ur = ur_getter(h)
     print('r is: ' + str(r))
     print('ur is: ' + str(ur))
@@ -464,18 +397,19 @@ def limit_poly2(f, g):
         P = (phi_inverse(newton_inverse(P, r, ur), b1).subs(x, x**r)) * x**(s*ur)
         Q = (phi_inverse(newton_inverse(Q, r, ur), b1).subs(x, x**r)) * x**(t*ur)
     stack = LifoQueue()
-    stack.put(P)
-    stack.put(Q)
-    list_of_tray = []
+    stack.put(P.expand().simplify().evalf())
+    stack.put(Q.expand().simplify().evalf())
     list_of_rs = [r]
+
+    # We find the trayectiories
     while not stack.empty():
-        H = stack.get()
-        print('From the stack I got: ' + str(H.expand().simplify()))
-        H = H.expand().simplify()
-        if H.subs([(x, 0), (y, 0)], simultaneous=True) != 0:
-            print('H doesn\'t go through 0!, because H(0,0) = {}'.format(
-                H.subs([(x, 0), (y, 0)], simultaneous=True)))
-            continue
+        H = stack.get().simplify()
+        print('From the stack I got: ' + str(H.simplify()))
+        H = H.simplify().expand()
+        # if H.subs([(x, 0), (y, 0)], simultaneous=True) != 0:
+        #     print('H doesn\'t go through 0!, because H(0,0) = {}'.format(
+        #         H.subs([(x, 0), (y, 0)], simultaneous=True)))
+        #     continue
         if sympy.degree(H, y) == 1:
             print('H works!')
             list_of_tray.append(H)
@@ -485,7 +419,7 @@ def limit_poly2(f, g):
 
         H = monic_maker(H)
         print('monic H: ' + str(H.expand().simplify()))
-        N = upper_bound_getter(H)
+        # N = upper_bound_getter(H)
         H, b1 = phi_automorphism(H)
         print('H after phi: ' + str(H.expand().simplify()))
         r, ur = ur_getter(H)
@@ -493,15 +427,17 @@ def limit_poly2(f, g):
         # print('r is: ' + str(r))
         # print('ur is: ' + str(ur))
         if ur == sympy.simplify('oo'):
+            print('H is of the form y^d!')
             list_of_tray.append(sympy.simplify(0))
             continue
         d = sympy.degree(H, y)
         H = newton_automorphism(H, r, ur)/(x**(d*ur))
         print('H after newton: ' + str(H.expand().simplify()))
-        if sympy.degree(h, x) == 0:
+        if sympy.degree(H, x) == 0:
             try:
                 P, Q = pqgetter(H)
             except ValueError:
+                print('H has no real roots!')
                 continue
             s = sympy.degree(P, y)
             t = sympy.degree(Q, y)
@@ -519,9 +455,25 @@ def limit_poly2(f, g):
                 print('H has no real roots!')
                 continue
         print('Putting {} in the stack'.format(P))
-        stack.put(P)
+        stack.put(P.expand().simplify().evalf())
         print('Putting {} in the stack'.format(Q))
-        stack.put(Q)
-    return list_of_tray
+        stack.put(Q.expand().simplify().evalf())
+
+    # We evaluate the one-variable limit.
+    new_list_of_tray = [-(tray - y) for tray in list_of_tray]
+    print(new_list_of_tray)
+    R = reduce(lcm, list_of_rs)
+    print('R: ' + str(R))
+    F = rotate(f, 1)
+    G = rotate(g, 1)
+    print('F: ' + str(F))
+    print('G: ' + str(G))
+    list_of_quotients = [(F.subs([(x, x), (y, new_list_of_tray[i])])
+                          /G.subs([(x, x), (y, new_list_of_tray[i])]))
+                          for i in range(len(list_of_tray))]
+    print(list_of_quotients)
+    list_of_limits = [sympy.limit(q, x, 0) for q in list_of_quotients]
+    print(list_of_limits)
+    return list_of_limits
 
 
